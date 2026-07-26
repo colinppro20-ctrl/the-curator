@@ -348,6 +348,25 @@
                 font-size: 2rem;
             }
         }
+        @media (max-width: 720px) {
+            .overlay-bottom {
+                flex-direction: column;
+                align-items: center;
+                gap: 1em;
+                text-align: center;
+            }
+
+            .overlay-bottom span {
+                position: static;
+                transform: none;
+                left: auto;
+                top: auto;
+                order: 3;
+                white-space: normal;
+                max-width: calc(100vw - 40px);
+                text-align: center;
+            }
+        }
     </style>
 </head>
 
