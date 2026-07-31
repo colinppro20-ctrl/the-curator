@@ -484,17 +484,17 @@
                 }, 1200);
             }
 
-            // Crée un checkout via l'API Storefront (GraphQL) et redirige vers la page de paiement Shopify.
+            // Crée un panier via le Cart API (Storefront GraphQL) et renvoie l'URL de checkout hébergé Shopify.
             async function createCheckout(variantId) {
                 const query = `
-                    mutation checkoutCreate($input: CheckoutCreateInput!) {
-                        checkoutCreate(input: $input) {
-                            checkout { webUrl }
-                            checkoutUserErrors { message }
+                    mutation cartCreate($input: CartInput!) {
+                        cartCreate(input: $input) {
+                            cart { checkoutUrl }
+                            userErrors { message }
                         }
                     }`;
                 const variables = {
-                    input: { lineItems: [{ variantId: variantId, quantity: 1 }] }
+                    input: { lines: [{ merchandiseId: variantId, quantity: 1 }] }
                 };
 
                 const res = await fetch('https://' + SHOPIFY_DOMAIN + '/api/2024-07/graphql.json', {
@@ -506,15 +506,20 @@
                     body: JSON.stringify({ query, variables })
                 });
                 const data = await res.json();
-                const result = data && data.data && data.data.checkoutCreate;
-                if (!result) throw new Error('Réponse Shopify invalide');
-                if (result.checkoutUserErrors && result.checkoutUserErrors.length) {
-                    throw new Error(result.checkoutUserErrors[0].message);
+
+                // Erreurs GraphQL de haut niveau (mauvais champ, token, etc.)
+                if (data.errors && data.errors.length) {
+                    throw new Error(data.errors[0].message);
                 }
-                if (!result.checkout || !result.checkout.webUrl) {
+                const result = data && data.data && data.data.cartCreate;
+                if (!result) throw new Error('Réponse Shopify invalide');
+                if (result.userErrors && result.userErrors.length) {
+                    throw new Error(result.userErrors[0].message);
+                }
+                if (!result.cart || !result.cart.checkoutUrl) {
                     throw new Error('Aucune URL de checkout renvoyée');
                 }
-                return result.checkout.webUrl;
+                return result.cart.checkoutUrl;
             }
 
             addBtn.addEventListener('click', async () => {
