@@ -149,6 +149,12 @@
             text-transform: uppercase;
             letter-spacing: 0.2em;
             font-weight: 700;
+            transition: color 0.15s ease;
+        }
+
+        /* Feedback "pas de taille sélectionnée" — rouge PFM */
+        .label.error {
+            color: #ff0000;
         }
 
         .sizes {
@@ -212,6 +218,24 @@
             background: #fff;
             color: #000;
             border: 1px solid #000;
+        }
+
+        .add-to-cart:disabled {
+            cursor: default;
+            opacity: 1;
+        }
+
+        /* Léger tremblement du bouton quand aucune taille n'est choisie */
+        @keyframes pfm-shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-3px); }
+            40% { transform: translateX(3px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
+        }
+
+        .add-to-cart.shake {
+            animation: pfm-shake 0.35s ease;
         }
 
         .final {
@@ -354,7 +378,7 @@
 
             <hr class="rule" />
 
-            <div class="label">Size</div>
+            <div class="label" id="sizeLabel">Size</div>
             <div class="sizes">
                 <button type="button" class="size">35</button>
                 <button type="button" class="size">36</button>
@@ -372,7 +396,7 @@
 
             <hr class="rule" />
 
-            <button type="button" class="add-to-cart">Add to Cart</button>
+            <button type="button" class="add-to-cart" id="addToCart">Add to Cart</button>
             <div class="final">All Sales Final</div>
 
             <p class="desc">
@@ -416,9 +440,118 @@
             s.addEventListener('click', () => {
                 sizes.forEach((o) => o.classList.remove('selected'));
                 s.classList.add('selected');
+                // efface l'état d'erreur dès qu'une taille est choisie
+                document.getElementById('sizeLabel').classList.remove('error');
             });
         });
     </script>
+
+    <!-- ============ SHOPIFY CHECKOUT (panier + checkout hébergé, design PFM intact) ============ -->
+    <script>
+        (function () {
+            const SHOPIFY_DOMAIN = '0irdnx-yq.myshopify.com';
+            const STOREFRONT_TOKEN = '7497907b3475178b17ff30e8ec9e122c';
+
+            // Taille (texte du bouton) -> Variant ID Shopify
+            const VARIANTS = {
+                '35': 'gid://shopify/ProductVariant/57224130396540',
+                '36': 'gid://shopify/ProductVariant/57224130429308',
+                '37': 'gid://shopify/ProductVariant/57224130462076',
+                '38': 'gid://shopify/ProductVariant/57224130494844',
+                '39': 'gid://shopify/ProductVariant/57224130527612',
+                '40': 'gid://shopify/ProductVariant/57224130560380',
+                '41': 'gid://shopify/ProductVariant/57224130593148',
+                '42': 'gid://shopify/ProductVariant/57224130625916',
+                '43': 'gid://shopify/ProductVariant/57224130658684',
+                '44': 'gid://shopify/ProductVariant/57224130691452',
+                '45': 'gid://shopify/ProductVariant/57224130724220',
+                '46': 'gid://shopify/ProductVariant/57224130756988'
+            };
+
+            const addBtn = document.getElementById('addToCart');
+            const sizeLabel = document.getElementById('sizeLabel');
+            const ADD_LABEL = 'Add to Cart';
+
+            function flagNoSize() {
+                sizeLabel.classList.add('error');
+                addBtn.classList.remove('shake');
+                // force le reflow pour rejouer l'animation
+                void addBtn.offsetWidth;
+                addBtn.classList.add('shake');
+                setTimeout(() => {
+                    sizeLabel.classList.remove('error');
+                    addBtn.classList.remove('shake');
+                }, 1200);
+            }
+
+            // Crée un checkout via l'API Storefront (GraphQL) et redirige vers la page de paiement Shopify.
+            async function createCheckout(variantId) {
+                const query = `
+                    mutation checkoutCreate($input: CheckoutCreateInput!) {
+                        checkoutCreate(input: $input) {
+                            checkout { webUrl }
+                            checkoutUserErrors { message }
+                        }
+                    }`;
+                const variables = {
+                    input: { lineItems: [{ variantId: variantId, quantity: 1 }] }
+                };
+
+                const res = await fetch('https://' + SHOPIFY_DOMAIN + '/api/2024-07/graphql.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN
+                    },
+                    body: JSON.stringify({ query, variables })
+                });
+                const data = await res.json();
+                const result = data && data.data && data.data.checkoutCreate;
+                if (!result) throw new Error('Réponse Shopify invalide');
+                if (result.checkoutUserErrors && result.checkoutUserErrors.length) {
+                    throw new Error(result.checkoutUserErrors[0].message);
+                }
+                if (!result.checkout || !result.checkout.webUrl) {
+                    throw new Error('Aucune URL de checkout renvoyée');
+                }
+                return result.checkout.webUrl;
+            }
+
+            addBtn.addEventListener('click', async () => {
+                const selected = document.querySelector('.size.selected');
+                if (!selected) {
+                    flagNoSize();
+                    return;
+                }
+                const size = selected.textContent.trim();
+                const variantId = VARIANTS[size];
+                if (!variantId) {
+                    flagNoSize();
+                    return;
+                }
+
+                // anti double-clic
+                addBtn.disabled = true;
+                addBtn.textContent = '…';
+
+                try {
+                    const url = await createCheckout(variantId);
+                    window.location.href = url; // -> checkout hébergé Shopify (PCI-DSS)
+                } catch (err) {
+                    console.error('Shopify checkout error:', err);
+                    addBtn.disabled = false;
+                    addBtn.textContent = ADD_LABEL;
+                    sizeLabel.classList.add('error');
+                    sizeLabel.textContent = 'Size — try again';
+                    setTimeout(() => {
+                        sizeLabel.classList.remove('error');
+                        sizeLabel.textContent = 'Size';
+                    }, 2000);
+                }
+            });
+        })();
+    </script>
+
     <div class="radio" id="radio">
         <button class="radio-toggle" id="radioToggle" type="button" aria-label="Play PFM Radio" aria-pressed="false">
             <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
