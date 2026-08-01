@@ -326,9 +326,10 @@
             opacity: 0.6;
         }
         @media (max-width: 720px) {
-            /* Mobile : garder le bas de la vidéo (PFM dans le sable + tongs) dans le cadre */
+            /* Mobile : plein écran, cadrage ancré en bas pour garder le PFM (sable) + les tongs. */
             .bg-video {
-                object-position: center 80%;
+                object-fit: cover;
+                object-position: center bottom;
             }
 
             .overlay-bottom {
