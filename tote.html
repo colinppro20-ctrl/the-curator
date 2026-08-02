@@ -678,7 +678,7 @@
                         var hours = Math.floor((t % 86400) / 3600);
                         var mins = Math.floor((t % 3600) / 60);
                         var secs = t % 60;
-                        timer.textContent = 'DROPS IN ' + days + 'D : ' + pad(hours) + 'H : ' + pad(mins) + 'M : ' + pad(secs) + 'S';
+                        timer.textContent = days + 'D : ' + pad(hours) + 'H : ' + pad(mins) + 'M : ' + pad(secs) + 'S';
                     }
 
                     render();
