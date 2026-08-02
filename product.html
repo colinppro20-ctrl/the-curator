@@ -238,6 +238,21 @@
             animation: pfm-shake 0.35s ease;
         }
 
+        .drop-timer {
+            width: 100%;
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+            border-radius: 0;
+            padding: 16px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.2em;
+            text-align: center;
+        }
+
         .final {
             font-size: 10px;
             text-transform: uppercase;
@@ -659,8 +674,52 @@
 
             <hr class="rule" />
 
+            <div class="drop-timer" id="dropTimer" hidden></div>
             <button type="button" class="add-to-cart" id="addToCart">Add to Cart</button>
             <div class="final">All Sales Final</div>
+
+            <script>
+                (function () {
+                    var addBtn = document.getElementById('addToCart');
+                    var timer = document.getElementById('dropTimer');
+                    if (!addBtn || !timer) return;
+
+                    // Porte de test : ?preview=angers -> bouton visible immédiatement
+                    var params = new URLSearchParams(window.location.search);
+                    if (params.get('preview') === 'angers') {
+                        timer.hidden = true;
+                        addBtn.hidden = false;
+                        return;
+                    }
+
+                    // Échéance : mercredi 5 août 2026, 19h00 heure de Paris (CEST, UTC+2)
+                    var target = new Date('2026-08-05T19:00:00+02:00').getTime();
+                    var iv = null;
+
+                    function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+                    function render() {
+                        var diff = target - Date.now();
+                        if (diff <= 0) {
+                            timer.hidden = true;
+                            addBtn.hidden = false;
+                            clearInterval(iv);
+                            return;
+                        }
+                        addBtn.hidden = true;
+                        timer.hidden = false;
+                        var t = Math.floor(diff / 1000);
+                        var days = Math.floor(t / 86400);
+                        var hours = Math.floor((t % 86400) / 3600);
+                        var mins = Math.floor((t % 3600) / 60);
+                        var secs = t % 60;
+                        timer.textContent = 'DROPS IN ' + days + 'D : ' + pad(hours) + 'H : ' + pad(mins) + 'M : ' + pad(secs) + 'S';
+                    }
+
+                    render();
+                    iv = setInterval(render, 1000);
+                })();
+            </script>
 
             <p class="desc">
                 Rubber thong sandals featuring molded PVC straps embellished
