@@ -199,6 +199,16 @@
             color: #fff;
         }
 
+        .size.sold-out,
+        .size.sold-out:hover {
+            opacity: 0.35;
+            text-decoration: line-through;
+            background: #fff;
+            color: #000;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         .add-to-cart {
             width: 100%;
             background: #000;
@@ -668,7 +678,7 @@
                 <button type="button" class="size">42</button>
                 <button type="button" class="size">43</button>
                 <button type="button" class="size">44</button>
-                <button type="button" class="size">45</button>
+                <button type="button" class="size sold-out" disabled aria-disabled="true">45</button>
                 <button type="button" class="size">46</button>
             </div>
 
